@@ -110,13 +110,16 @@ Usage:
                 'Key "{}" is type {}: integer or float required'.format(key, type(key)))
         if key not in range(1, num_cats+1):
             raise ValueError('Key "{}" out of range 1 - {}'.format(key, num_cats))
+    
+    prob_exp = []
+    days_in_month = [31,28.25,31,30,31,30,31,31,30,31,30,31]
+    prob_exp.append([ x/365.25 for x in days_in_month ])
+    freq_exp = [ x*sum(counts.values()) for x in prob_exp[0] ]
 
-
-    freq_exp = sum(counts.values())/num_cats
     test_statistic = 0
     for key in counts.keys():
         freq_obs = counts[key]
-        test_statistic += ((freq_obs - freq_exp)**2)/freq_exp
+        test_statistic += ((freq_obs - freq_exp[int(key)-1])**2)/freq_exp[int(key)-1]
 
     dof = len(counts.values())-1
     print(sys.argv[1:])
