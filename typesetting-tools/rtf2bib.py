@@ -11,10 +11,14 @@ import sys
 import argparse
 from urllib.request import Request, urlopen
 import os
+import re
+
+import bibtexparser
+from bibtexparser.bparser import BibTexParser
 
 from string import punctuation
-###############################################################################
 
+###############################################################################
 
 def create_url_list(input_file):
     '''
@@ -62,13 +66,71 @@ def create_bib_list(url_list, output_file):
 
     for url in url_list:
         try:
-            req = Request(url, headers=headers)
-            bibtex = urlopen(req).read().decode('utf-8')
             with open(filename + ".bib", "a+") as fp:
-                fp.write(str(bibtex))
+                req = Request(url, headers=headers)
+                bibtext = urlopen(req).read().decode('utf-8')
+                bibparser = BibTexParser()
+                bibparser.ignore_nonstandard_types = False
+                fp.write(print_string(bibtext, bibparser))
         except:
             continue
 
+###############################################################################
+'''
+Disambiguate citekey with name of first author and year of publication.
+'''
+
+def sanitise_author(author):
+    '''
+    Remove any special characters from lead author name.
+    '''
+    surname = author.split()[0]
+    auth = surname.split()[0].rstrip(punctuation).capitalize()
+    auth = re.sub(r'[^\x00-\x7f]',r'_',auth)
+    return auth
+
+def author_year(bibdb):
+    '''
+    Return name of first author and year of publication.
+    '''
+    author = bibdb.entries[0]["author"]
+    year = bibdb.entries[0]["year"]
+    return author, year
+
+def cite_key(tup):
+    '''
+    Create citekey.
+    '''
+    auth = sanitise_author(tup[0])
+    year = tup[1]
+    cite_key = auth+"_"+year
+    return cite_key
+
+def prefix_string(bibtext, bibparser):
+    '''
+    Prepare string prefix with new citekey.
+    '''
+    bibdb = bibtexparser.loads(bibtext, bibparser)
+    articleType = str(bibtext).split(',')[0]
+    articleType = articleType[0:articleType.find('{')+1]
+    prefix = articleType+cite_key(author_year(bibdb))+','
+    return prefix
+
+def suffix_string(bibtext):
+    '''
+    Prepare string suffix with new citekey.
+    '''
+    suffix = ','.join(str(bibtext).split(',')[1::])
+    return suffix
+
+def print_string(bibtext, bibparser):
+    '''
+    Concatenate text with new citekey.
+    '''
+    prefix = prefix_string(bibtext, bibparser)
+    suffix = suffix_string(bibtext)
+    return prefix+suffix
+    
 ###############################################################################
 
 def sanity_check(output_file):
@@ -125,6 +187,10 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    try:
+        main(sys.argv[1:])
+    except KeyboardInterrupt:
+        pass
+
 
 ###############################################################################
