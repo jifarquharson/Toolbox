@@ -113,7 +113,7 @@ def prefix_string(bibtext, bibparser):
     bibdb = bibtexparser.loads(bibtext, bibparser)
     articleType = str(bibtext).split(',')[0]
     articleType = articleType[0:articleType.find('{')+1]
-    prefix = articleType+cite_key(author_year(bibdb))+','
+    prefix = articleType+cite_key(author_year(bibdb))+',\n'
     return prefix
 
 def suffix_string(bibtext):
@@ -121,8 +121,11 @@ def suffix_string(bibtext):
     Prepare string suffix with new citekey.
     '''
     suffix = ','.join(str(bibtext).split(',')[1::])
-    return suffix
-
+    newtext = ""
+    for part in suffix.split("}, "):
+        newtext+=part+"},\n"
+    return newtext
+    
 def print_string(bibtext, bibparser):
     '''
     Concatenate text with new citekey.
